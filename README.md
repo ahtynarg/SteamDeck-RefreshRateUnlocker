@@ -23,13 +23,12 @@ Discord user dan2wik for the idea on overclocking the display panel to 70Hz!
 
 ## About this fork
 This fork updates the script for current SteamOS releases (tested logic against SteamOS 3.9.5 / gamescope 3.17):
-1. Removed the hard `3.8` upper version limit - any SteamOS 3.7 or newer uses the gamescope LUA method.
-2. Version comparison now uses `sort -V`, so future versions like `3.10` are detected correctly.
-3. Desktop Mode detection works under Wayland (the default desktop session since SteamOS 3.8).
-4. Returns to Game Mode with `steamos-session-select gamescope` (falls back to `qdbus6` / `qdbus`).
-5. The refresh rate list in the LUA profile is replaced robustly and verified - the script no longer reports success if the patch did not apply.
-6. The sudo password is no longer required for SteamOS 3.7+ since the mod only writes to `~/.config/gamescope/scripts`.
-7. Steam Deck OLED is detected and rejected with a clear message.
+1. No SteamOS version check for new releases - the gamescope LUA method is used whenever the stock Steam Deck LCD profile (`/usr/share/gamescope/scripts/00-gamescope/displays/valve.steamdeck.lcd.lua`) exists, whatever the version number.
+2. Desktop Mode detection works under Wayland (the default desktop session since SteamOS 3.8).
+3. Returns to Game Mode with `steamos-session-select gamescope` (falls back to `qdbus6` / `qdbus`).
+4. The refresh rate list in the LUA profile is replaced robustly and verified - the script no longer reports success if the patch did not apply.
+5. The sudo password is no longer required for SteamOS 3.7+ since the mod only writes to `~/.config/gamescope/scripts`.
+6. Steam Deck OLED is detected and rejected with a clear message.
 
 ## Disclaimer
 1. Do this at your own risk!

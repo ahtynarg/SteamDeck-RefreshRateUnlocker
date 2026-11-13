@@ -32,21 +32,20 @@ GS_PATCHED="$SCRIPT_DIR/gamescope/3.6.20/gamescope-3.6.20-patched"
 GS_ORIG_MD5SUM=c522838a242fabe519958903253a2a4c
 GS_PATCHED_MD5SUM=641af753637c710f72748d4ec7fb655b
 
-# returns success if version $1 >= version $2 (handles 3.10 > 3.9 correctly)
-version_ge() {
-	[ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n 1)" == "$2" ]
-}
-
-# pick the unlock method for the running SteamOS version
-if version_ge "$STEAMOS_VERSION" 3.7
-then
-	METHOD=LUA
-elif [ "$STEAMOS_VERSION_FULL" == "3.6.20" ]
+# pick the unlock method.
+# Legacy releases are matched by exact version. Everything else is detected by
+# feature, not by version number: if gamescope ships the Steam Deck LCD LUA
+# display profile, the LUA method is used, so new SteamOS releases keep working
+# without a script update.
+if [ "$STEAMOS_VERSION_FULL" == "3.6.20" ]
 then
 	METHOD=GAMESCOPE_BINARY
 elif [ "$STEAMOS_VERSION" == "3.5" ]
 then
 	METHOD=GAMESCOPE_SESSION
+elif [ -e "$LCD_TEMPLATE" ]
+then
+	METHOD=LUA
 else
 	METHOD=UNSUPPORTED
 fi
@@ -105,6 +104,7 @@ fi
 if [ "$METHOD" == "UNSUPPORTED" ]
 then
 	echo SteamOS $STEAMOS_VERSION_FULL detected. This is unsupported version.
+	echo The gamescope LCD profile was not found: $LCD_TEMPLATE
 	exit 1
 fi
 echo Test 1. Steam Deck LCD on SteamOS $STEAMOS_VERSION_FULL detected. Proceed to the next step.
