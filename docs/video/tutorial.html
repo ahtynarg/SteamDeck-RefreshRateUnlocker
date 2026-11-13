@@ -1,0 +1,528 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #0d1016;
+    --bg2: #141924;
+    --panel: #1b2130;
+    --panel2: #232a3b;
+    --line: #2e374b;
+    --text: #e8ecf3;
+    --muted: #94a0b8;
+    --accent: #4cb5ff;
+    --accent2: #1a9fff;
+    --ok: #46c46e;
+    --warn: #f2b84b;
+    --term: #0b0e13;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); color: var(--text);
+    font-family: "Inter", "DejaVu Sans", sans-serif; }
+  .abs { position: absolute; }
+  #stage { position: relative; width: 1920px; height: 1080px;
+    background: radial-gradient(1200px 700px at 50% 35%, #182031 0%, var(--bg) 70%); }
+
+  /* header */
+  #brand { left: 64px; top: 34px; font-size: 26px; font-weight: 600; color: var(--muted); letter-spacing: .3px; }
+  #brand b { color: var(--text); }
+  #brand .hz { color: var(--accent); }
+
+  /* screen */
+  #screen { left: 240px; top: 92px; width: 1440px; height: 810px; border-radius: 22px; overflow: hidden;
+    background: #000; box-shadow: 0 0 0 10px #05070a, 0 0 0 12px #2a3142, 0 30px 80px rgba(0,0,0,.6); }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+
+  /* caption */
+  #caption { left: 240px; top: 934px; width: 1440px; height: 96px; display: flex; align-items: center; gap: 26px; }
+  #step { flex: none; height: 56px; padding: 0 22px; border-radius: 28px; background: var(--accent2); color: #fff;
+    font-size: 26px; font-weight: 700; display: flex; align-items: center; }
+  #captext { font-size: 38px; font-weight: 600; line-height: 1.2; }
+  #captext small { display: block; font-size: 24px; font-weight: 500; color: var(--muted); margin-top: 6px; }
+  #progress { left: 0; bottom: 0; height: 8px; width: 0; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+
+  /* title / outro full-stage cards */
+  .card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; opacity: 0; }
+  .card h1 { font-size: 92px; font-weight: 800; letter-spacing: -1px; }
+  .card h1 .hz { color: var(--accent); }
+  .card h2 { font-size: 40px; font-weight: 500; color: var(--muted); margin-top: 22px; }
+  .pill { display: inline-block; margin-top: 44px; padding: 14px 30px; border-radius: 40px; border: 2px solid var(--line);
+    font-size: 28px; color: var(--text); background: rgba(255,255,255,.03); }
+
+  /* game mode */
+  .gm { background: linear-gradient(160deg, #10141d 0%, #0a0c11 100%); }
+  .gm-tiles { left: 70px; top: 120px; display: flex; gap: 26px; }
+  .gm-tile { width: 230px; height: 330px; border-radius: 10px; background: linear-gradient(160deg, #26304a, #161b28); }
+  .gm-tile:nth-child(2) { background: linear-gradient(160deg, #3a2a44, #1b1622); }
+  .gm-tile:nth-child(3) { background: linear-gradient(160deg, #20403a, #13201d); }
+  .gm-tile:nth-child(4) { background: linear-gradient(160deg, #40382a, #1f1b14); }
+  .gm-menu { right: 0; top: 0; bottom: 0; width: 470px; background: rgba(22,27,38,.97); border-left: 1px solid var(--line);
+    padding: 70px 34px; }
+  .gm-menu h3 { font-size: 30px; font-weight: 700; margin-bottom: 30px; color: var(--muted); letter-spacing: 1px; }
+  .gm-item { height: 74px; border-radius: 8px; display: flex; align-items: center; padding: 0 26px; font-size: 30px;
+    margin-bottom: 10px; color: var(--text); }
+  .gm-item.sel { background: var(--accent2); color: #fff; }
+
+  /* desktop */
+  .desk { background: linear-gradient(135deg, #1d2a44 0%, #2a2140 55%, #15192a 100%); }
+  .taskbar { left: 0; right: 0; bottom: 0; height: 58px; background: rgba(15,18,26,.92); border-top: 1px solid var(--line);
+    display: flex; align-items: center; padding: 0 18px; gap: 14px; }
+  .tb-ico { width: 34px; height: 34px; border-radius: 8px; background: #39445c; }
+  .tb-ico.a { background: var(--accent2); }
+  .tb-clock { margin-left: auto; font-size: 20px; color: var(--muted); }
+  .dicon { width: 150px; text-align: center; font-size: 20px; line-height: 1.25; color: #fff; text-shadow: 0 1px 3px #000; }
+  .dicon .img { width: 84px; height: 84px; margin: 0 auto 10px; border-radius: 16px; background: linear-gradient(160deg, #3d8bff, #1b5fd6);
+    display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; color: #fff;
+    box-shadow: 0 6px 18px rgba(0,0,0,.4); }
+  .dicon.sel .img { outline: 4px solid rgba(76,181,255,.75); outline-offset: 4px; }
+
+  /* windows */
+  .win { background: var(--panel); border-radius: 12px; border: 1px solid var(--line); overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,.55); }
+  .win .bar { height: 46px; background: var(--panel2); display: flex; align-items: center; padding: 0 18px; font-size: 19px;
+    color: var(--muted); gap: 10px; }
+  .win .bar .dots { margin-left: auto; display: flex; gap: 10px; }
+  .win .bar .dots i { width: 14px; height: 14px; border-radius: 50%; background: #3a4458; display: block; }
+
+  /* browser */
+  .url { margin: 14px 18px; height: 50px; border-radius: 25px; background: #10141c; border: 1px solid var(--line);
+    display: flex; align-items: center; padding: 0 24px; font-size: 22px; font-family: "DejaVu Sans Mono", monospace; color: var(--text); }
+  .caret { display: inline-block; width: 2px; height: 26px; background: var(--accent); margin-left: 2px; vertical-align: middle; }
+  .gh { padding: 26px 46px; }
+  .gh .tag { display: inline-block; font-size: 18px; padding: 6px 14px; border-radius: 16px; border: 1px solid var(--ok); color: var(--ok); }
+  .gh h4 { font-size: 34px; margin: 16px 0 8px; }
+  .gh p { font-size: 21px; color: var(--muted); }
+  .assets { margin-top: 28px; border: 1px solid var(--line); border-radius: 10px; }
+  .assets .h { padding: 14px 20px; font-size: 20px; font-weight: 700; border-bottom: 1px solid var(--line); }
+  .asset { padding: 16px 20px; font-size: 22px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--line); }
+  .asset:last-child { border-bottom: 0; }
+  .asset .lnk { color: var(--accent); font-weight: 600; }
+  .asset .sz { margin-left: auto; color: var(--muted); font-size: 18px; }
+  .asset.hl { background: rgba(76,181,255,.12); }
+  .toast { right: 26px; bottom: 82px; width: 470px; padding: 20px 24px; border-radius: 12px; background: var(--panel2);
+    border: 1px solid var(--line); box-shadow: 0 16px 40px rgba(0,0,0,.5); font-size: 20px; opacity: 0; }
+  .toast b { display: block; font-size: 22px; margin-bottom: 6px; }
+  .toast .ok { color: var(--ok); }
+
+  /* file manager */
+  .fm { display: flex; height: calc(100% - 46px); }
+  .fm .side { width: 220px; background: #171c28; padding: 18px 12px; font-size: 20px; }
+  .fm .side div { padding: 10px 14px; border-radius: 6px; color: var(--muted); margin-bottom: 4px; }
+  .fm .side div.on { background: rgba(76,181,255,.18); color: var(--text); }
+  .fm .main { flex: 1; padding: 26px; position: relative; }
+  .fico { width: 150px; text-align: center; font-size: 18px; color: var(--text); }
+  .fico .doc { width: 72px; height: 88px; margin: 0 auto 10px; border-radius: 6px; background: #dfe6f3; position: relative; }
+  .fico .doc::after { content: ""; position: absolute; right: 0; top: 0; border-width: 0 20px 20px 0; border-style: solid;
+    border-color: #171c28 #9fb0cc; }
+
+  /* dialog */
+  .dlg { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 30px 80px rgba(0,0,0,.65); overflow: hidden; }
+  .dlg .body { padding: 28px 34px; font-size: 22px; line-height: 1.45; }
+  .dlg .btns { display: flex; justify-content: flex-end; gap: 14px; padding: 0 34px 26px; }
+  .btn { min-width: 130px; height: 50px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2);
+    display: flex; align-items: center; justify-content: center; font-size: 22px; padding: 0 22px; }
+  .btn.pri { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .btn.press { transform: scale(.95); filter: brightness(1.25); }
+  .rows { margin-top: 18px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .row { display: grid; grid-template-columns: 70px 200px 1fr; align-items: center; height: 58px; font-size: 21px; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .row.head { height: 46px; font-size: 18px; color: var(--muted); background: var(--panel2); }
+  .row.sel { background: rgba(26,159,255,.25); }
+  .radio { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--muted); margin-left: 22px; position: relative; }
+  .radio.on { border-color: var(--accent); }
+  .radio.on::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--accent); }
+
+  /* terminal */
+  .term { background: var(--term); }
+  .term .out { padding: 20px 24px; font-family: "DejaVu Sans Mono", monospace; font-size: 21px; line-height: 1.5; color: #c9d3e3; white-space: pre-wrap; }
+  .term .g { color: var(--ok); }
+  .term .y { color: var(--warn); }
+  .term .b { color: var(--accent); }
+
+  /* quick access */
+  .qa { right: 0; top: 0; bottom: 0; width: 560px; background: rgba(22,27,38,.98); border-left: 1px solid var(--line); padding: 40px 36px; }
+  .qa-tabs { display: flex; gap: 12px; margin-bottom: 34px; }
+  .qa-tabs i { width: 54px; height: 54px; border-radius: 10px; background: #2a3245; display: block; }
+  .qa-tabs i.on { background: var(--accent2); }
+  .qa h3 { font-size: 30px; font-weight: 700; margin-bottom: 30px; }
+  .qa .lbl { display: flex; justify-content: space-between; font-size: 24px; margin-bottom: 18px; }
+  .qa .lbl b { color: var(--accent); font-size: 28px; }
+  .track { height: 10px; border-radius: 5px; background: #33405a; position: relative; margin-bottom: 14px; }
+  .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: var(--accent2); }
+  .knob { position: absolute; top: 50%; width: 32px; height: 32px; margin: -16px 0 0 -16px; border-radius: 50%; background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+  .ticks { display: flex; justify-content: space-between; font-size: 18px; color: var(--muted); }
+  .qa .other { margin-top: 44px; }
+  .qa .other div { height: 22px; border-radius: 6px; background: #252d3f; margin-bottom: 26px; }
+
+  /* cursor + click ripple */
+  #cursor { width: 34px; height: 46px; left: 0; top: 0; z-index: 50; opacity: 0; }
+  #ripple { width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%; border: 4px solid var(--accent); opacity: 0; z-index: 49; }
+  .fade { position: absolute; inset: 0; background: #000; opacity: 0; z-index: 40; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="brand" class="abs"><b>Steam Deck LCD</b> · <span class="hz">70Hz</span> Refresh Rate Unlocker · SteamOS 3.9+</div>
+
+  <!-- title card -->
+  <div class="card" id="title">
+    <h1>Steam Deck LCD at <span class="hz">70Hz</span></h1>
+    <h2>One-click install · SteamOS 3.7, 3.8, 3.9 and newer</h2>
+    <div class="pill">github.com/ahtynarg/SteamDeck-RefreshRateUnlocker</div>
+  </div>
+
+  <div id="screen" class="abs">
+    <!-- 1: game mode, switch to desktop -->
+    <div class="scene gm" id="s-gm">
+      <div class="gm-tiles abs"><div class="gm-tile"></div><div class="gm-tile"></div><div class="gm-tile"></div><div class="gm-tile"></div></div>
+      <div class="gm-menu abs" id="gm-menu">
+        <h3>POWER</h3>
+        <div class="gm-item" data-i="0">Suspend</div>
+        <div class="gm-item" data-i="1">Restart</div>
+        <div class="gm-item" data-i="2">Shut Down</div>
+        <div class="gm-item" data-i="3">Switch to Desktop</div>
+      </div>
+    </div>
+
+    <!-- desktop based scenes -->
+    <div class="scene desk" id="s-desk">
+      <div class="abs dicon" id="d-icon" style="left:46px; top:40px; opacity:0">
+        <div class="img">70</div>Refresh Rate<br>Unlocker (70Hz)
+      </div>
+
+      <!-- browser -->
+      <div class="abs win" id="w-browser" style="left:110px; top:50px; width:1220px; height:640px; opacity:0">
+        <div class="bar">Web Browser<div class="dots"><i></i><i></i><i></i></div></div>
+        <div class="url"><span id="url-text"></span><span class="caret" id="url-caret"></span></div>
+        <div class="gh" id="gh-page" style="opacity:0">
+          <span class="tag">Latest</span>
+          <h4>v1.0.0 - SteamOS 3.9+ and one-click installer</h4>
+          <p>ahtynarg / SteamDeck-RefreshRateUnlocker · Releases</p>
+          <div class="assets">
+            <div class="h">Assets</div>
+            <div class="asset" id="asset1"><span class="lnk">RefreshRateUnlocker.desktop</span><span class="sz">364 Bytes</span></div>
+            <div class="asset"><span class="lnk">Source code (zip)</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="abs toast" id="toast"><b>Download finished</b>RefreshRateUnlocker.desktop · <span class="ok">Downloads</span></div>
+
+      <!-- file manager -->
+      <div class="abs win" id="w-fm" style="left:420px; top:120px; width:900px; height:520px; opacity:0">
+        <div class="bar">Downloads — File Manager<div class="dots"><i></i><i></i><i></i></div></div>
+        <div class="fm">
+          <div class="side"><div>Home</div><div>Desktop</div><div class="on">Downloads</div><div>Documents</div></div>
+          <div class="main"><div class="abs fico" id="f-file" style="left:36px; top:30px"><div class="doc"></div>RefreshRate<br>Unlocker.desktop</div></div>
+        </div>
+      </div>
+
+      <!-- run dialog -->
+      <div class="abs dlg" id="d-run" style="left:390px; top:230px; width:660px; opacity:0">
+        <div class="win" style="border:0; box-shadow:none; border-radius:0"><div class="bar">Run this file?</div></div>
+        <div class="body">“Refresh Rate Unlocker (70Hz)” is a program launcher downloaded from the internet.<br>Allow it to run?</div>
+        <div class="btns"><div class="btn">Cancel</div><div class="btn pri" id="b-run">Allow &amp; Run</div></div>
+      </div>
+
+      <!-- terminal -->
+      <div class="abs win term" id="w-term" style="left:220px; top:40px; width:1180px; height:650px; opacity:0">
+        <div class="bar">bootstrap.sh — Konsole<div class="dots"><i></i><i></i><i></i></div></div>
+        <div class="out" id="term-out"></div>
+      </div>
+
+      <!-- warning dialog -->
+      <div class="abs dlg" id="d-warn" style="left:300px; top:110px; width:840px; opacity:0">
+        <div class="win" style="border:0; box-shadow:none; border-radius:0"><div class="bar">Steam Deck Refresh Rate Unlocker</div></div>
+        <div class="body" style="font-size:21px">
+          <b class="y" style="color:var(--warn)">WARNING:</b> This is for educational and research purposes only!<br><br>
+          The script has been tested with Steam Deck LCD and the original LCD panel.<br>
+          This may / may not work with and may / may not cause damage to a DeckHD / DeckSight panel.<br><br>
+          If you use a DeckHD / DeckSight panel then proceed at your own risk!<br><br>
+          The author of this script takes no responsibility for any damage.<br><br>
+          Do you agree to the terms and conditions ?
+        </div>
+        <div class="btns"><div class="btn">No</div><div class="btn pri" id="b-yes">Yes</div></div>
+      </div>
+
+      <!-- menu dialog -->
+      <div class="abs dlg" id="d-menu" style="left:250px; top:150px; width:940px; opacity:0">
+        <div class="win" style="border:0; box-shadow:none; border-radius:0"><div class="bar">Refresh Rate Unlocker - SteamOS 3.9.5</div></div>
+        <div class="body">
+          <div class="rows">
+            <div class="row head"><span style="padding-left:14px">Select</span><span>Option</span><span>Description</span></div>
+            <div class="row" id="r-install"><span class="radio" id="rad-install"></span><span>INSTALL</span><span>Install the 70Hz mod.</span></div>
+            <div class="row"><span class="radio"></span><span>UNINSTALL</span><span>Remove the 70Hz mod.</span></div>
+            <div class="row" id="r-exit"><span class="radio" id="rad-exit"></span><span>EXIT</span><span>Don't make any changes and exit immediately.</span></div>
+          </div>
+        </div>
+        <div class="btns"><div class="btn">Cancel</div><div class="btn pri" id="b-ok">OK</div></div>
+      </div>
+
+      <div class="abs fico" id="ghost" style="opacity:0; z-index:30"><div class="doc"></div>RefreshRate<br>Unlocker.desktop</div>
+      <div class="taskbar abs"><div class="tb-ico a"></div><div class="tb-ico"></div><div class="tb-ico"></div><div class="tb-ico"></div><div class="tb-clock">12:00</div></div>
+    </div>
+
+    <!-- game mode quick access -->
+    <div class="scene gm" id="s-qa">
+      <div class="gm-tiles abs"><div class="gm-tile"></div><div class="gm-tile"></div><div class="gm-tile"></div></div>
+      <div class="qa abs" id="qa">
+        <div class="qa-tabs"><i></i><i></i><i></i><i class="on"></i><i></i></div>
+        <h3>Performance</h3>
+        <div class="lbl"><span>Refresh rate</span><b id="hz-val">60 Hz</b></div>
+        <div class="track"><div class="fill" id="hz-fill"></div><div class="knob" id="hz-knob"></div></div>
+        <div class="ticks"><span>40</span><span>50</span><span>60</span><span>70</span></div>
+        <div class="other"><div style="width:80%"></div><div style="width:65%"></div><div style="width:72%"></div></div>
+      </div>
+    </div>
+
+    <div class="fade" id="fade"></div>
+    <svg id="cursor" class="abs" viewBox="0 0 34 46"><path d="M3 3 L3 37 L12 29 L18 43 L24 40 L18 27 L30 27 Z" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/></svg>
+    <div id="ripple" class="abs"></div>
+  </div>
+
+  <!-- outro -->
+  <div class="card" id="outro">
+    <h1 style="font-size:76px">Done — enjoy <span class="hz">70Hz</span></h1>
+    <h2 style="line-height:1.6; margin-top:30px">Update or uninstall any time: run the shortcut again<br>and choose <b style="color:var(--text)">INSTALL</b> or <b style="color:var(--text)">UNINSTALL</b>.</h2>
+    <div class="pill">github.com/ahtynarg/SteamDeck-RefreshRateUnlocker</div>
+    <h2 style="font-size:24px; margin-top:40px">Original mod by ryanrudolf (@10MinuteSteamDeckGamer) · Steam Deck LCD only · Use at your own risk</h2>
+  </div>
+
+  <div id="caption" class="abs"><div id="step">1 / 8</div><div id="captext"></div></div>
+  <div id="progress" class="abs"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = x => { x = clamp(x); return x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x + 2, 3)/2; };
+const ramp = (t, a, b) => ease((t - a) / (b - a));           // 0 -> 1 between a and b
+const win = (t, a, b, f = .4) => Math.min(ramp(t, a, a + f), 1 - ramp(t, b - f, b)); // fade in at a, out at b
+const lerp = (a, b, k) => a + (b - a) * k;
+
+// scene timeline (seconds)
+const S = {
+  title:   [0, 4.5],
+  gm:      [4.5, 11],
+  browser: [11, 21],
+  fm:      [21, 28.5],
+  run:     [28.5, 34.5],
+  term1:   [34.5, 41],
+  warn:    [41, 46],
+  menu:    [46, 52],
+  term2:   [52, 58],
+  qa:      [58, 67],
+  outro:   [67, 73],
+};
+const TOTAL = 73;
+
+const CAPTIONS = [
+  ["title", "", ""],
+  ["gm", "1 / 8", "Switch to Desktop Mode", "Steam button → Power → Switch to Desktop"],
+  ["browser", "2 / 8", "Download RefreshRateUnlocker.desktop", "from the latest release on GitHub"],
+  ["fm", "3 / 8", "Move the file to the Desktop", "drag it from Downloads onto the Desktop"],
+  ["run", "4 / 8", "Double-click the shortcut", "if KDE asks whether to run the file, allow it"],
+  ["term1", "5 / 8", "It downloads the installer and starts it", "no password needed on SteamOS 3.7 and newer"],
+  ["warn", "6 / 8", "Read the warning and press Yes", "Steam Deck LCD only"],
+  ["menu", "7 / 8", "Select INSTALL and press OK", ""],
+  ["term2", "7 / 8", "Installed — back to Game Mode automatically", ""],
+  ["qa", "8 / 8", "Quick Access (…) → Performance", "the refresh rate now goes up to 70 Hz"],
+  ["outro", "", ""],
+];
+
+// cursor helper: keyframes [[t, x, y], ...] in screen pixels
+function cursorAt(t, keys) {
+  if (t <= keys[0][0]) return [keys[0][1], keys[0][2]];
+  for (let i = 1; i < keys.length; i++) {
+    if (t <= keys[i][0]) {
+      const k = ease((t - keys[i-1][0]) / (keys[i][0] - keys[i-1][0]));
+      return [lerp(keys[i-1][1], keys[i][1], k), lerp(keys[i-1][2], keys[i][2], k)];
+    }
+  }
+  const l = keys[keys.length - 1]; return [l[1], l[2]];
+}
+function setCursor(t, keys, visible, clicks = []) {
+  const c = $("cursor"), r = $("ripple");
+  c.style.opacity = visible;
+  const [x, y] = cursorAt(t, keys);
+  c.style.left = (x - 3) + "px"; c.style.top = (y - 3) + "px";
+  let ro = 0, rs = 1;
+  for (const ct of clicks) { if (t >= ct && t < ct + .45) { const k = (t - ct) / .45; ro = 1 - k; rs = .4 + k * .9; } }
+  r.style.opacity = ro * visible; r.style.left = x + "px"; r.style.top = y + "px"; r.style.transform = `scale(${rs})`;
+}
+const pressed = (t, ct) => t >= ct && t < ct + .25;
+const PT = {};
+function measure() {
+  const sr = $("screen").getBoundingClientRect();
+  for (const [key, id, fx, fy] of [["asset", "asset1", .18, .5], ["run", "b-run", .5, .5], ["yes", "b-yes", .5, .5],
+      ["ok", "b-ok", .5, .5], ["radio", "rad-install", .5, .5], ["icon", "d-icon", .5, .3], ["file", "f-file", .5, .3]]) {
+    const r = $(id).getBoundingClientRect();
+    PT[key] = [r.left - sr.left + r.width * fx, r.top - sr.top + r.height * fy];
+    if (key === "file") { PT.fileW = r.width; PT.fileH = r.height; }
+  }
+}
+
+const TERM1 = [
+  ["Downloading https://github.com/ahtynarg/SteamDeck-RefreshRateUnlocker.git", ""],
+  ["Cloning into '/home/deck/SteamDeck-RefreshRateUnlocker'...", ""],
+  ["", ""],
+  ["Steam Deck Refresh Rate Unlocker / 70Hz LCD mod script  by ryanrudolf", "b"],
+  ["https://github.com/ryanrudolfoba/SteamDeck-RefreshRateUnlocker", ""],
+  ["YT - 10MinuteSteamDeckGamer", ""],
+  ["Fork updated for current SteamOS releases (3.7, 3.8, 3.9 and newer).", "b"],
+  ["Script is running in Desktop Mode.", ""],
+  ["Test 1. Steam Deck LCD on SteamOS 3.9.5 detected. Proceed to the next step.", "g"],
+];
+const TERM2 = [
+  ["User agrees to the terms and conditions. Continue with the script.", ""],
+  ["Installing the 70Hz mod for SteamOS 3.9.5.", ""],
+  ["70Hz LCD mod successfully installed to /home/deck/.config/gamescope/scripts/valve.steamdeck.lcd.70Hz.lua", "g"],
+  ["Returning to Game Mode in 5sec.", "y"],
+];
+function termLines(lines, n) {
+  return lines.slice(0, n).map(([s, c]) => c ? `<span class="${c}">${s}</span>` : s).join("\n");
+}
+
+function render(t) {
+  // cards
+  $("title").style.opacity = win(t, -1, S.title[1], .6);
+  $("outro").style.opacity = ramp(t, S.outro[0], S.outro[0] + .7);
+  const inScreen = t >= S.title[1] - .5 && t < S.outro[0] + .5;
+  $("screen").style.opacity = Math.min(ramp(t, S.title[1] - .6, S.title[1]), 1 - ramp(t, S.outro[0] - .3, S.outro[0] + .4));
+  $("caption").style.opacity = $("screen").style.opacity;
+  $("brand").style.opacity = $("screen").style.opacity;
+  $("progress").style.width = (1920 * clamp(t / TOTAL)) + "px";
+
+  // captions
+  let cap = CAPTIONS[0];
+  for (const c of CAPTIONS) { if (t >= S[c[0]][0]) cap = c; }
+  $("step").style.display = cap[1] ? "flex" : "none";
+  $("step").textContent = cap[1];
+  $("captext").innerHTML = (cap[2] || "") + (cap[3] ? `<small>${cap[3]}</small>` : "");
+  const capStart = S[cap[0]][0];
+  $("captext").style.opacity = ramp(t, capStart, capStart + .35);
+
+  // reset per-frame
+  for (const id of ["s-gm","s-desk","s-qa"]) $(id).style.opacity = 0;
+  for (const id of ["w-browser","w-fm","d-run","w-term","d-warn","d-menu","toast","ghost"]) $(id).style.opacity = 0;
+  $("fade").style.opacity = 0;
+  setCursor(0, [[0, -100, -100]], 0);
+
+  // 1. game mode -> switch to desktop
+  if (t >= S.gm[0] - .5 && t < S.gm[1]) {
+    const lt = t - S.gm[0];
+    $("s-gm").style.opacity = 1;
+    $("gm-menu").style.transform = `translateX(${lerp(480, 0, ramp(lt, .3, 1.1))}px)`;
+    const sel = lt < 2 ? 0 : lt < 2.7 ? 1 : lt < 3.4 ? 2 : 3;
+    document.querySelectorAll("#gm-menu .gm-item").forEach(e => e.classList.toggle("sel", +e.dataset.i === sel));
+    $("fade").style.opacity = ramp(lt, 5.2, 6.5);
+  }
+
+  // desktop scenes
+  if (t >= S.browser[0] && t < S.term2[1]) {
+    $("s-desk").style.opacity = 1;
+    $("fade").style.opacity = Math.max(1 - ramp(t, S.browser[0], S.browser[0] + .8), ramp(t, S.term2[1] - 1.2, S.term2[1]));
+  }
+
+  // 2. browser + download
+  if (t >= S.browser[0] && t < S.browser[1] + .4) {
+    const lt = t - S.browser[0];
+    $("w-browser").style.opacity = win(t, S.browser[0] + .3, S.browser[1] + .4);
+    const url = "github.com/ahtynarg/SteamDeck-RefreshRateUnlocker/releases/latest";
+    const n = Math.floor(clamp((lt - 1) / 2.4) * url.length);
+    $("url-text").textContent = url.slice(0, n);
+    $("url-caret").style.opacity = (lt < 3.6 && Math.floor(lt * 2.5) % 2 === 0) ? 1 : 0;
+    $("gh-page").style.opacity = ramp(lt, 3.6, 4.2);
+    $("asset1").classList.toggle("hl", lt > 5.6);
+    setCursor(lt, [[4.2, 1000, 650], [5.6, ...PT.asset]], ramp(lt, 4, 4.3) * (1 - ramp(lt, 9.2, 9.6)), [6.1]);
+    $("toast").style.opacity = win(lt, 6.6, 9.8, .3);
+  }
+
+  // 3. file manager -> drag to desktop
+  if (t >= S.fm[0] - .2 && t < S.fm[1]) {
+    const lt = t - S.fm[0];
+    $("w-fm").style.opacity = win(lt, 0, 7.5, .4);
+    const drag = ramp(lt, 2.4, 4.6);
+    // file icon moves with the cursor from the window to the desktop
+    const fx = lerp(PT.file[0], PT.icon[0], drag), fy = lerp(PT.file[1], PT.icon[1], drag);
+    const dragging = lt >= 2.4 && lt < 4.7;
+    $("f-file").style.opacity = lt < 2.4 ? 1 : (dragging ? .35 : 0);
+    const g = $("ghost");
+    g.style.opacity = dragging ? .9 : 0;
+    g.style.left = (fx - PT.fileW / 2) + "px";
+    g.style.top = (fy - PT.fileH * .3) + "px";
+    $("d-icon").style.opacity = ramp(lt, 4.6, 4.9);
+    setCursor(lt, [[.6, 900, 560], [2.0, ...PT.file], [2.4, ...PT.file], [4.6, ...PT.icon], [7, ...PT.icon]],
+      ramp(lt, .5, .8), [2.1]);
+  } else if (t >= S.fm[1]) {
+    $("d-icon").style.opacity = 1;
+  } else {
+    $("d-icon").style.opacity = 0;
+  }
+
+  // 4. double click + run dialog
+  $("d-icon").classList.toggle("sel", t >= S.run[0] + 1 && t < S.term1[0]);
+  if (t >= S.run[0] && t < S.run[1]) {
+    const lt = t - S.run[0];
+    $("d-run").style.opacity = win(lt, 1.6, 6, .3);
+    $("b-run").classList.toggle("press", pressed(lt, 4.4));
+    setCursor(lt, [[0, ...PT.icon], [2.6, ...PT.icon], [4.2, ...PT.run]], 1, [1.05, 1.3, 4.4]);
+  }
+
+  // 5. terminal output
+  if (t >= S.term1[0] && t < S.term2[1]) {
+    const lt = t - S.term1[0];
+    $("w-term").style.opacity = ramp(lt, 0, .4);
+    let html = termLines(TERM1, Math.floor(clamp((lt - .5) / 4.2) * TERM1.length + (lt > .5 ? 1 : 0)));
+    if (t >= S.term2[0]) {
+      const l2 = t - S.term2[0];
+      html += "\n" + termLines(TERM2, Math.floor(clamp((l2 - .4) / 2.4) * TERM2.length + (l2 > .4 ? 1 : 0)));
+    }
+    $("term-out").innerHTML = html;
+  }
+
+  // 6. warning dialog
+  if (t >= S.warn[0] && t < S.warn[1]) {
+    const lt = t - S.warn[0];
+    $("d-warn").style.opacity = win(lt, 0, 5, .35);
+    $("b-yes").classList.toggle("press", pressed(lt, 3.8));
+    setCursor(lt, [[0, 700, 600], [3.4, ...PT.yes]], ramp(lt, .2, .5) * (1 - ramp(lt, 4.6, 5)), [3.8]);
+  }
+
+  // 7. menu dialog
+  if (t >= S.menu[0] && t < S.menu[1]) {
+    const lt = t - S.menu[0];
+    $("d-menu").style.opacity = win(lt, 0, 6, .35);
+    const installSel = lt > 2;
+    $("rad-install").classList.toggle("on", installSel);
+    $("rad-exit").classList.toggle("on", !installSel);
+    $("r-install").classList.toggle("sel", installSel);
+    $("r-exit").classList.toggle("sel", !installSel);
+    $("b-ok").classList.toggle("press", pressed(lt, 4.6));
+    setCursor(lt, [[0, 900, 640], [1.8, ...PT.radio], [2.4, ...PT.radio], [4.2, ...PT.ok]], ramp(lt, .2, .5) * (1 - ramp(lt, 5.4, 5.9)), [2, 4.6]);
+  }
+
+  // 8. quick access -> 70 Hz
+  if (t >= S.qa[0] && t < S.qa[1] + .5) {
+    const lt = t - S.qa[0];
+    $("s-qa").style.opacity = 1;
+    $("fade").style.opacity = 1 - ramp(lt, 0, .8);
+    $("qa").style.transform = `translateX(${lerp(570, 0, ramp(lt, .8, 1.6))}px)`;
+    const hz = Math.round(lerp(60, 70, ramp(lt, 3, 6)));
+    $("hz-val").textContent = hz + " Hz";
+    const p = (hz - 40) / 30 * 100;
+    $("hz-fill").style.width = p + "%";
+    $("hz-knob").style.left = p + "%";
+    $("hz-val").style.color = hz === 70 ? "var(--ok)" : "var(--accent)";
+  }
+}
+
+measure();
+window.render = render;
+window.TOTAL = TOTAL;
+render(0);
+</script>
+</body>
+</html>
