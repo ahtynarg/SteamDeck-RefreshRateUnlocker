@@ -26,9 +26,7 @@ For SteamOS 3.7 and newer there is **no version number check**: the mod is insta
 
 ### Option 1 - one click, no terminal (recommended)
 1. Switch to **Desktop Mode**.
-2. Open this link in the browser, right-click the page and choose **Save Page As…** (or press `Ctrl+S`), and save it to the **Desktop**:\
-   [RefreshRateUnlocker.desktop](https://raw.githubusercontent.com/ahtynarg/SteamDeck-RefreshRateUnlocker/main/RefreshRateUnlocker.desktop)\
-   Make sure the file name ends with `.desktop` (not `.desktop.txt`).
+2. Download **[RefreshRateUnlocker.desktop](https://github.com/ahtynarg/SteamDeck-RefreshRateUnlocker/releases/latest/download/RefreshRateUnlocker.desktop)** (from the [latest release](https://github.com/ahtynarg/SteamDeck-RefreshRateUnlocker/releases/latest)) and move it from *Downloads* to the **Desktop**.
 3. Double-click **Refresh Rate Unlocker (70Hz)** on the Desktop. If KDE asks whether to run / trust the file, allow it.
 4. A Konsole window opens, downloads (or updates) this project into `~/SteamDeck-RefreshRateUnlocker` and starts the installer.
 5. Read the warning / disclaimer and press **Yes**, then select **INSTALL** and press **OK**.
