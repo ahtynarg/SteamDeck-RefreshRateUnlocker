@@ -38,15 +38,11 @@ If an older copy of the original project already exists in `~/SteamDeck-RefreshR
 
 ### Option 2 - terminal
 1. Switch to **Desktop Mode** and open **Konsole**.
-2. Download the script:
+2. Run (does the same as the shortcut - downloads or updates the project and starts the installer):
    ```bash
-   cd ~ && git clone https://github.com/ahtynarg/SteamDeck-RefreshRateUnlocker.git
+   bash <(curl -fsSL https://raw.githubusercontent.com/ahtynarg/SteamDeck-RefreshRateUnlocker/main/bootstrap.sh)
    ```
-3. Run it:
-   ```bash
-   ~/SteamDeck-RefreshRateUnlocker/install-RefreshRateUnlocker.sh
-   ```
-4. Continue from step 5 of Option 1.
+3. Continue from step 5 of Option 1.
 
 **sudo password:** on SteamOS 3.7+ no password is needed at all. On 3.5 / 3.6.20 the script changes system files and handles the password the same way as the Decky Loader installer:
 - if you already have a sudo password, it asks for it in a dialog;
@@ -70,22 +66,23 @@ Or, on SteamOS 3.7+, simply delete the file `~/.config/gamescope/scripts/valve.s
 
 ## What does this script do?
 On SteamOS 3.7 and newer:
-1. Checks that it runs in Desktop Mode on a Steam Deck LCD (board `Jupiter`).
-2. Copies the stock gamescope display profile `/usr/share/gamescope/scripts/00-gamescope/displays/valve.steamdeck.lcd.lua`.
-3. Replaces the list of allowed refresh rates `40 … 60` with `40 … 70`, verifies the result and saves it as `~/.config/gamescope/scripts/valve.steamdeck.lcd.70Hz.lua`.
-4. Gamescope loads user scripts after the system ones, so this profile overrides the stock one. Nothing in the read-only system partition is changed, and the file survives SteamOS updates.
+1. Checks that it runs in Desktop Mode on a Steam Deck LCD (board `Jupiter`) and that SteamOS ships the stock gamescope Steam Deck LCD profile (`/usr/share/gamescope/scripts/00-gamescope/displays/valve.steamdeck.lcd.lua`).
+2. Writes a small gamescope script `~/.config/gamescope/scripts/valve.steamdeck.lcd.70Hz.lua` that only changes the list of allowed refresh rates of that stock profile from `40 … 60` to `40 … 70`.
+3. Gamescope runs user scripts after its own display profiles, so everything else (colorimetry, mode timings, panel detection) stays exactly as shipped with SteamOS, including future fixes from Valve. Nothing in the read-only system partition is changed, and the file survives SteamOS updates.
 
-Panels with their own gamescope profile (for example DeckHD) are not matched by this profile and are not affected, but use it at your own risk with replacement panels.
+Panels with their own gamescope profile (for example DeckHD) are not affected, but use the mod at your own risk with replacement panels.
 
 ## Changes in this fork
 1. Works on SteamOS 3.9 and newer - no hard version limit; the method is detected by the presence of the stock gamescope profile.
-2. Desktop Mode detection works under Wayland (the default desktop session since SteamOS 3.8).
-3. Returns to Game Mode with `steamos-session-select gamescope` (falls back to `qdbus6` / `qdbus`).
-4. The refresh rate list is replaced robustly and verified - the script never reports success if the patch did not apply.
-5. No sudo password needed on SteamOS 3.7+; on 3.5 / 3.6.20 a temporary password is set and removed automatically if you have none (like the Decky installer).
-6. Steam Deck OLED is detected and rejected with a clear message.
-7. One-click `.desktop` launcher that downloads / updates the project and starts the installer.
-8. Fixed the SteamOS 3.5 method truncating `/bin/gamescope-session`, and bundled files are found even when the script is started from another folder.
+2. On SteamOS 3.7+ only the refresh rate list of the stock profile is overridden, instead of copying the whole profile - Valve's updates to the rest of the profile keep working.
+3. One-click `.desktop` launcher that downloads / updates the project and starts the installer.
+4. Desktop Mode detection works under Wayland (the default desktop session since SteamOS 3.8).
+5. Returns to Game Mode with `steamos-session-select gamescope` (falls back to `qdbus6` / `qdbus`).
+6. Every step is checked - the script never reports success if a file could not be written or removed.
+7. No sudo password needed on SteamOS 3.7+; on 3.5 / 3.6.20 a temporary password is set and removed automatically if you have none (like the Decky installer). Passwords with special characters work, and sudo rights are not left cached.
+8. SteamOS 3.6.20: the installed and bundled gamescope binaries are checked before anything is replaced.
+9. Steam Deck OLED is detected and rejected with a clear message.
+10. Automated tests (GitHub Actions) run on every change and weekly against the latest gamescope profile.
 
 ## Known Issues
 1. When taking a screenshot in-game, the screen will momentarily go blank as it toggles to 60Hz, and then goes back to the custom refresh rate once the screenshot is done.

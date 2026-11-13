@@ -20,7 +20,8 @@ STEAMOS_VERSION=$(echo "$STEAMOS_VERSION_FULL" | cut -d "." -f1-2)
 MIN_HZ=40
 MAX_HZ=70
 
-# SteamOS 3.7 and above unlock method using a custom gamescope LUA display profile
+# SteamOS 3.7 and above: a small gamescope user script that extends the refresh rates
+# of the stock Steam Deck LCD display profile (everything else stays as Valve ships it)
 LCD_TEMPLATE=/usr/share/gamescope/scripts/00-gamescope/displays/valve.steamdeck.lcd.lua
 SCRIPT_LOCATION="${XDG_CONFIG_HOME:-$HOME/.config}/gamescope/scripts"
 SCRIPT_NAME=valve.steamdeck.lcd.70Hz.lua
@@ -116,29 +117,47 @@ echo Test 1. Steam Deck LCD on SteamOS "$STEAMOS_VERSION_FULL" detected. Proceed
 #  - password already set: ask for it in a dialog and check it
 #  - no password set: set a random temporary one and remove it again when the script ends
 TEMP_PASSWORD_SET=0
+current_password=""
+
+# run a command with sudo. printf (not echo -e) keeps passwords with backslashes intact,
+# -k makes sudo use the password every time and not cache it after the script ends.
+sudo_cmd() {
+	printf '%s\n' "$current_password" | sudo -S -k "$@"
+}
+
+password_status() {
+	passwd --status "$(whoami)" | tr -s " " | cut -d " " -f 2
+}
 
 remove_temp_password() {
 	if [ "$TEMP_PASSWORD_SET" == "1" ]
 	then
-		echo Removing the temporary sudo password.
-		echo -e "$current_password\n" | sudo -S -k passwd -d "$(whoami)" &> /dev/null
 		TEMP_PASSWORD_SET=0
+		if [ "$(password_status)" == "P" ]
+		then
+			echo Removing the temporary sudo password.
+			if ! sudo_cmd passwd -d "$(whoami)" &> /dev/null
+			then
+				echo "Could not remove the temporary sudo password. It is: $current_password"
+				echo "Change it with the passwd command."
+			fi
+		fi
 	fi
+	sudo -k 2> /dev/null
 }
 trap remove_temp_password EXIT
 
 if [ "$METHOD" != "LUA" ]
 then
-	if [ "$(passwd --status "$(whoami)" | tr -s " " | cut -d " " -f 2)" == "P" ]
+	if [ "$(password_status)" == "P" ]
 	then
-		current_password=$(zenity --password --title "Refresh Rate Unlocker - enter your sudo password")
-		if [ $? -ne 0 ]
+		if ! current_password=$(zenity --password --title "Refresh Rate Unlocker - enter your sudo password")
 		then
 			echo User cancelled the password prompt. Exiting immediately.
 			exit
 		fi
 		echo Checking if the sudo password is correct.
-		if echo -e "$current_password\n" | sudo -S -k true &> /dev/null
+		if sudo_cmd true &> /dev/null
 		then
 			echo Sudo password is good!
 		else
@@ -147,15 +166,26 @@ then
 			exit 1
 		fi
 	else
+		# a temporary password only helps if this user is allowed to use sudo at all
+		if ! id -nG | tr ' ' '\n' | grep -q -x -E 'wheel|sudo'
+		then
+			echo This user is not allowed to use sudo. Run the script as the deck user.
+			exit 1
+		fi
 		echo No sudo password is set. Setting a temporary one - it will be removed when the script ends.
 		current_password=$(head -c 18 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')
-		printf '%s\n%s\n' "$current_password" "$current_password" | passwd "$(whoami)" &> /dev/null
-		if echo -e "$current_password\n" | sudo -S -k true &> /dev/null
+		# mark it before calling passwd, so the EXIT trap removes it whatever happens next
+		TEMP_PASSWORD_SET=1
+		if ! printf '%s\n%s\n' "$current_password" "$current_password" | passwd "$(whoami)" &> /dev/null
 		then
-			TEMP_PASSWORD_SET=1
+			echo Could not set a temporary sudo password. Set a password with the passwd command and re-run the script.
+			exit 1
+		fi
+		if sudo_cmd true &> /dev/null
+		then
 			echo Temporary sudo password is active.
 		else
-			echo Could not set a temporary sudo password. Set a password with the passwd command and re-run the script.
+			echo sudo does not accept the temporary password. Set a password with the passwd command and re-run the script.
 			exit 1
 		fi
 	fi
@@ -200,85 +230,88 @@ then
 	then
 		echo Installing the ${MAX_HZ}Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
 
-		if [ ! -e "$LCD_TEMPLATE" ]
+		# the user script below modifies this table - make sure the stock profile still provides it
+		if ! grep -q -E 'known_displays\.steamdeck_lcd([^A-Za-z0-9_]|$)' "$LCD_TEMPLATE" || ! grep -q -E '(^|[^A-Za-z0-9_])dynamic_refresh_rates([^A-Za-z0-9_]|$)' "$LCD_TEMPLATE"
 		then
-			echo Default Gamescope template not found: $LCD_TEMPLATE
-			report_issue
-			exit 1
-		fi
-
-		mkdir -p "$SCRIPT_LOCATION"
-
-		# build the list of refresh rates MIN_HZ..MAX_HZ, e.g. "40, 41, ..., 70"
-		RATES=$(seq $MIN_HZ $MAX_HZ | paste -sd, | sed 's/,/, /g')
-
-		# copy the stock profile and replace only the dynamic_refresh_rates block.
-		# This does not depend on the exact line layout of the stock file.
-		TMP_FILE=$(mktemp)
-		awk -v rates="$RATES" '
-			/dynamic_refresh_rates[[:space:]]*=[[:space:]]*{/ {
-				print "    dynamic_refresh_rates = {"
-				print "        " rates
-				print "    },"
-				skipping = 1
-				replaced++
-				# block opened and closed on the same line
-				if ($0 ~ /}/) skipping = 0
-				next
-			}
-			skipping {
-				if ($0 ~ /}/) skipping = 0
-				next
-			}
-			{ print }
-			END { if (replaced != 1) exit 1 }
-		' "$LCD_TEMPLATE" > "$TMP_FILE"
-
-		if [ $? -eq 0 ] && grep -q "$MAX_HZ" "$TMP_FILE" && grep -q "steamdeck_lcd" "$TMP_FILE"
-		then
-			mv "$TMP_FILE" "$SCRIPT_LOCATION/$SCRIPT_NAME"
-			echo ${MAX_HZ}Hz LCD mod successfully installed to "$SCRIPT_LOCATION"/$SCRIPT_NAME
-			return_to_game_mode
-		else
-			rm -f "$TMP_FILE"
 			echo ${MAX_HZ}Hz LCD mod NOT successfully installed - the stock gamescope profile has an unexpected format.
 			report_issue
 			exit 1
 		fi
 
+		if ! mkdir -p "$SCRIPT_LOCATION"
+		then
+			echo ${MAX_HZ}Hz LCD mod NOT successfully installed - could not create "$SCRIPT_LOCATION".
+			exit 1
+		fi
+
+		# gamescope runs user scripts after its own display profiles, in the same Lua state,
+		# so this only changes the refresh rate list of the already registered stock profile.
+		TMP_FILE="$SCRIPT_LOCATION/.$SCRIPT_NAME.tmp"
+		if cat > "$TMP_FILE" <<EOF && mv -f "$TMP_FILE" "$SCRIPT_LOCATION/$SCRIPT_NAME"
+-- Steam Deck LCD ${MAX_HZ}Hz mod - https://github.com/ahtynarg/SteamDeck-RefreshRateUnlocker
+-- Extends the refresh rates of the stock Steam Deck LCD display profile to ${MIN_HZ}-${MAX_HZ}Hz.
+-- Everything else (colorimetry, mode timings, panel matching) stays as shipped with SteamOS.
+-- Remove this file to go back to the stock ${MIN_HZ}-60Hz range.
+local lcd = gamescope.config.known_displays.steamdeck_lcd
+if lcd then
+    local rates = {}
+    for hz = ${MIN_HZ}, ${MAX_HZ} do
+        rates[#rates + 1] = hz
+    end
+    lcd.dynamic_refresh_rates = rates
+    debug("[${MAX_HZ}Hz mod] Steam Deck LCD refresh rates set to ${MIN_HZ}-${MAX_HZ}Hz")
+else
+    debug("[${MAX_HZ}Hz mod] Steam Deck LCD profile not found - nothing changed")
+end
+EOF
+		then
+			echo ${MAX_HZ}Hz LCD mod successfully installed to "$SCRIPT_LOCATION/$SCRIPT_NAME"
+			return_to_game_mode
+		else
+			rm -f "$TMP_FILE"
+			echo ${MAX_HZ}Hz LCD mod NOT successfully installed - could not write "$SCRIPT_LOCATION/$SCRIPT_NAME".
+			exit 1
+		fi
+
 	elif [ "$METHOD" == "GAMESCOPE_BINARY" ]
 	then
-		ACTUAL_GS_ORIG_MD5SUM=$(md5sum "$GS_ORIG" | cut -d " " -f1)
-		ACTUAL_GS_PATCHED_MD5SUM=$(md5sum "$GS_PATCHED" | cut -d " " -f1)
-
-		# sanity check - perform md5sum hash check
-		if [ "$ACTUAL_GS_ORIG_MD5SUM" == "$GS_ORIG_MD5SUM" ] && [ "$ACTUAL_GS_PATCHED_MD5SUM" == "$GS_PATCHED_MD5SUM" ]
+		# check the bundled files and the gamescope that is installed now
+		if [ "$(md5sum "$GS_ORIG" | cut -d " " -f1)" != "$GS_ORIG_MD5SUM" ] || [ "$(md5sum "$GS_PATCHED" | cut -d " " -f1)" != "$GS_PATCHED_MD5SUM" ]
 		then
-			echo Installing the 70Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
-			echo Downloaded files contain a valid md5sum hash.
-			echo -e "$current_password\n" | sudo -S steamos-readonly disable &> /dev/null
-			echo -e "$current_password\n" | sudo -S cp "$GS_PATCHED" /usr/bin/gamescope
-			if [ $? -eq 0 ] && [ "$(md5sum /usr/bin/gamescope | cut -d " " -f 1)" == "$GS_PATCHED_MD5SUM" ]
-			then
-				echo 70Hz mod successfully installed.
-				echo -e "$current_password\n" | sudo -S steamos-readonly enable &> /dev/null
-				return_to_game_mode
-			else
-				echo Error installing the 70Hz mod.
-				echo -e "$current_password\n" | sudo -S steamos-readonly enable &> /dev/null
-				exit 1
-			fi
-		else
 			echo Hash mismatch - possible corrupt download. Clone the repo again!
+			exit 1
+		fi
+		CURRENT_GS_MD5SUM=$(md5sum /usr/bin/gamescope | cut -d " " -f1)
+		if [ "$CURRENT_GS_MD5SUM" == "$GS_PATCHED_MD5SUM" ]
+		then
+			echo The 70Hz mod is already installed.
+			exit
+		elif [ "$CURRENT_GS_MD5SUM" != "$GS_ORIG_MD5SUM" ]
+		then
+			echo The installed gamescope is not the stock SteamOS 3.6.20 version. Not touching it.
+			report_issue
+			exit 1
+		fi
+
+		echo Installing the 70Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
+		sudo_cmd steamos-readonly disable &> /dev/null
+		sudo_cmd cp "$GS_PATCHED" /usr/bin/gamescope
+		sudo_cmd steamos-readonly enable &> /dev/null
+		if [ "$(md5sum /usr/bin/gamescope | cut -d " " -f 1)" == "$GS_PATCHED_MD5SUM" ]
+		then
+			echo 70Hz mod successfully installed.
+			return_to_game_mode
+		else
+			echo Error installing the 70Hz mod.
 			exit 1
 		fi
 
 	elif [ "$METHOD" == "GAMESCOPE_SESSION" ]
 	then
 		echo Installing the 70Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
-		echo -e "$current_password\n" | sudo -S steamos-readonly disable &> /dev/null
-		echo -e "$current_password\n" | sudo -S sed -i 's/STEAM_DISPLAY_REFRESH_LIMITS=40,60/STEAM_DISPLAY_REFRESH_LIMITS=40,70/g' /bin/gamescope-session
-		echo -e "$current_password\n" | sudo -S steamos-readonly enable &> /dev/null
+		sudo_cmd steamos-readonly disable &> /dev/null
+		sudo_cmd sed -i 's/STEAM_DISPLAY_REFRESH_LIMITS=40,60/STEAM_DISPLAY_REFRESH_LIMITS=40,70/g' /bin/gamescope-session
+		sudo_cmd steamos-readonly enable &> /dev/null
 		if grep -q "STEAM_DISPLAY_REFRESH_LIMITS=40,70" /bin/gamescope-session
 		then
 			echo 70Hz mod successfully installed.
@@ -295,32 +328,54 @@ then
 	then
 		echo Removing the ${MAX_HZ}Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
 		rm -f "$SCRIPT_LOCATION/$SCRIPT_NAME"
-		echo ${MAX_HZ}Hz mod successfully removed.
-		return_to_game_mode
+		if [ ! -e "$SCRIPT_LOCATION/$SCRIPT_NAME" ]
+		then
+			echo ${MAX_HZ}Hz mod successfully removed.
+			return_to_game_mode
+		else
+			echo Error removing "$SCRIPT_LOCATION/$SCRIPT_NAME" - delete it manually.
+			exit 1
+		fi
 
 	elif [ "$METHOD" == "GAMESCOPE_BINARY" ]
 	then
+		if [ "$(md5sum "$GS_ORIG" | cut -d " " -f1)" != "$GS_ORIG_MD5SUM" ]
+		then
+			echo Hash mismatch - possible corrupt download. Clone the repo again! Nothing was changed.
+			exit 1
+		fi
+		if [ "$(md5sum /usr/bin/gamescope | cut -d " " -f1)" == "$GS_ORIG_MD5SUM" ]
+		then
+			echo The 70Hz mod is not installed - gamescope is already the stock version.
+			exit
+		fi
+
 		echo Removing the 70Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
-		echo -e "$current_password\n" | sudo -S steamos-readonly disable &> /dev/null
-		echo -e "$current_password\n" | sudo -S cp "$GS_ORIG" /usr/bin/gamescope
-		if [ $? -eq 0 ] && [ "$(md5sum /usr/bin/gamescope | cut -d " " -f 1)" == "$GS_ORIG_MD5SUM" ]
+		sudo_cmd steamos-readonly disable &> /dev/null
+		sudo_cmd cp "$GS_ORIG" /usr/bin/gamescope
+		sudo_cmd steamos-readonly enable &> /dev/null
+		if [ "$(md5sum /usr/bin/gamescope | cut -d " " -f 1)" == "$GS_ORIG_MD5SUM" ]
 		then
 			echo 70Hz mod successfully removed.
-			echo -e "$current_password\n" | sudo -S steamos-readonly enable &> /dev/null
 			exit
 		else
 			echo Error removing the 70Hz mod.
-			echo -e "$current_password\n" | sudo -S steamos-readonly enable &> /dev/null
 			exit 1
 		fi
 
 	elif [ "$METHOD" == "GAMESCOPE_SESSION" ]
 	then
 		echo Removing the 70Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
-		echo -e "$current_password\n" | sudo -S steamos-readonly disable &> /dev/null
-		echo -e "$current_password\n" | sudo -S sed -i 's/STEAM_DISPLAY_REFRESH_LIMITS=40,70/STEAM_DISPLAY_REFRESH_LIMITS=40,60/g' /bin/gamescope-session
-		echo -e "$current_password\n" | sudo -S steamos-readonly enable &> /dev/null
-		echo 70Hz mod successfully removed.
-		exit
+		sudo_cmd steamos-readonly disable &> /dev/null
+		sudo_cmd sed -i 's/STEAM_DISPLAY_REFRESH_LIMITS=40,70/STEAM_DISPLAY_REFRESH_LIMITS=40,60/g' /bin/gamescope-session
+		sudo_cmd steamos-readonly enable &> /dev/null
+		if grep -q "STEAM_DISPLAY_REFRESH_LIMITS=40,60" /bin/gamescope-session
+		then
+			echo 70Hz mod successfully removed.
+			exit
+		else
+			echo Error removing the 70Hz mod.
+			exit 1
+		fi
 	fi
 fi
