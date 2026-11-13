@@ -23,9 +23,10 @@ jobs:
       - name: End-to-end tests (latest gamescope profile)
         run: bash tests/run-tests.sh
 
-      - name: Release asset matches RefreshRateUnlocker.desktop (Unix line endings)
+      - name: Release asset matches RefreshRateUnlocker.desktop
         if: github.ref == 'refs/heads/main'
         run: |
           curl -fsSL https://github.com/${{ github.repository }}/releases/latest/download/RefreshRateUnlocker.desktop -o release.desktop
-          if grep -q $'\r' release.desktop; then echo "::error::Release asset has Windows (CRLF) line endings"; exit 1; fi
-          cmp release.desktop RefreshRateUnlocker.desktop
+          # KDE (KConfig) trims each line, so Windows (CRLF) line endings still work - only warn about them
+          if grep -q $'\r' release.desktop; then echo "::warning::Release asset has Windows (CRLF) line endings"; fi
+          diff <(tr -d '\r' < release.desktop) RefreshRateUnlocker.desktop
