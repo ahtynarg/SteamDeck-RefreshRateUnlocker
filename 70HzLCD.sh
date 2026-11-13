@@ -52,6 +52,7 @@ fi
 
 # go back to Game Mode using the official SteamOS helper, fall back to a KDE logout
 return_to_game_mode() {
+	remove_temp_password
 	echo Returning to Game Mode in 5sec.
 	sleep 5
 	if command -v steamos-session-select &> /dev/null
@@ -109,27 +110,54 @@ then
 fi
 echo Test 1. Steam Deck LCD on SteamOS $STEAMOS_VERSION_FULL detected. Proceed to the next step.
 
-# sanity check - the older methods modify system files and need the sudo password.
-# The LUA method (SteamOS 3.7+) only writes to the home folder, so no sudo is needed.
+# sudo password handling - same approach as the Decky Loader installer.
+# Only the older methods (SteamOS 3.5 / 3.6.20) modify system files and need sudo.
+# The LUA method (SteamOS 3.7+) only writes to the home folder, so no password is needed.
+#  - password already set: ask for it in a dialog and check it
+#  - no password set: set a random temporary one and remove it again when the script ends
+TEMP_PASSWORD_SET=0
+
+remove_temp_password() {
+	if [ "$TEMP_PASSWORD_SET" == "1" ]
+	then
+		echo Removing the temporary sudo password.
+		echo -e "$current_password\n" | sudo -S -k passwd -d "$(whoami)" &> /dev/null
+		TEMP_PASSWORD_SET=0
+	fi
+}
+trap remove_temp_password EXIT
+
 if [ "$METHOD" != "LUA" ]
 then
-	if [ "$(passwd --status $(whoami) | tr -s " " | cut -d " " -f 2)" == "P" ]
+	if [ "$(passwd --status "$(whoami)" | tr -s " " | cut -d " " -f 2)" == "P" ]
 	then
-		read -s -p "Please enter current sudo password: " current_password ; echo
+		current_password=$(zenity --password --title "Refresh Rate Unlocker - enter your sudo password")
+		if [ $? -ne 0 ]
+		then
+			echo User cancelled the password prompt. Exiting immediately.
+			exit
+		fi
 		echo Checking if the sudo password is correct.
-		echo -e "$current_password\n" | sudo -S -k ls &> /dev/null
-
-		if [ $? -eq 0 ]
+		if echo -e "$current_password\n" | sudo -S -k true &> /dev/null
 		then
 			echo Sudo password is good!
 		else
-			echo Sudo password is wrong! Re-run the script and make sure to enter the correct sudo password!
+			echo Sudo password is wrong!
+			zenity --error --title "Refresh Rate Unlocker" --text "Sudo password is wrong! Re-run the script and enter the correct sudo password." --width 400
 			exit 1
 		fi
 	else
-		echo Sudo password is blank! Setup a sudo password first and then re-run script!
-		passwd
-		exit 1
+		echo No sudo password is set. Setting a temporary one - it will be removed when the script ends.
+		current_password=$(head -c 18 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')
+		printf '%s\n%s\n' "$current_password" "$current_password" | passwd "$(whoami)" &> /dev/null
+		if echo -e "$current_password\n" | sudo -S -k true &> /dev/null
+		then
+			TEMP_PASSWORD_SET=1
+			echo Temporary sudo password is active.
+		else
+			echo Could not set a temporary sudo password. Set a password with the passwd command and re-run the script.
+			exit 1
+		fi
 	fi
 fi
 

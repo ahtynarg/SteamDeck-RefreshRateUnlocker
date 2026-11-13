@@ -23,6 +23,22 @@ All credit for the original idea and script goes to **ryanrudolf** ([@10MinuteSt
 For SteamOS 3.7 and newer there is **no version number check**: the mod is installed whenever SteamOS ships the stock Steam Deck LCD gamescope profile, so future SteamOS updates should keep working without a script update.
 
 ## Installation
+
+### Option 1 - one click, no terminal (recommended)
+1. Switch to **Desktop Mode**.
+2. Open this link in the browser, right-click the page and choose **Save Page As…** (or press `Ctrl+S`), and save it to the **Desktop**:\
+   [RefreshRateUnlocker.desktop](https://raw.githubusercontent.com/ahtynarg/SteamDeck-RefreshRateUnlocker/main/RefreshRateUnlocker.desktop)\
+   Make sure the file name ends with `.desktop` (not `.desktop.txt`).
+3. Double-click **Refresh Rate Unlocker (70Hz)** on the Desktop. If KDE asks whether to run / trust the file, allow it.
+4. A Konsole window opens, downloads (or updates) this project into `~/SteamDeck-RefreshRateUnlocker` and starts the installer.
+5. Read the warning / disclaimer and press **Yes**, then select **INSTALL** and press **OK**.
+6. The Steam Deck returns to Game Mode automatically.
+7. Open the Quick Access menu (`...` button) → **Performance**. The refresh rate / framerate limit settings now go up to **70Hz**.
+
+Keep the shortcut on the Desktop - double-click it again any time to **update**, re-install or **UNINSTALL** the mod.
+If an older copy of the original project already exists in `~/SteamDeck-RefreshRateUnlocker`, it is not deleted, just renamed to `~/SteamDeck-RefreshRateUnlocker.backup-<date>`.
+
+### Option 2 - terminal
 1. Switch to **Desktop Mode** and open **Konsole**.
 2. Download the script:
    ```bash
@@ -32,23 +48,23 @@ For SteamOS 3.7 and newer there is **no version number check**: the mod is insta
    ```bash
    ~/SteamDeck-RefreshRateUnlocker/install-RefreshRateUnlocker.sh
    ```
-4. Read the warning / disclaimer and press **Yes**.
-5. Select **INSTALL** and press **OK**.
-6. The Steam Deck returns to Game Mode automatically.
-7. Open the Quick Access menu (`...` button) → **Performance**. The refresh rate / framerate limit settings now go up to **70Hz**.
+4. Continue from step 5 of Option 1.
 
-On SteamOS 3.7+ no sudo password is needed. On 3.5 / 3.6.20 the script asks for your sudo password because it changes system files.
+**sudo password:** on SteamOS 3.7+ no password is needed at all. On 3.5 / 3.6.20 the script changes system files and handles the password the same way as the Decky Loader installer:
+- if you already have a sudo password, it asks for it in a dialog;
+- if you have no password, it sets a random temporary one and removes it again when the script finishes (also when you cancel).
 
 > If you used the original script on SteamOS 3.7 / 3.8 before, you do not need to uninstall anything - this fork uses the same file name and simply overwrites it.
 
 ## Updating
+Double-click the **Refresh Rate Unlocker (70Hz)** shortcut - it updates the project automatically before starting. Or in a terminal:
 ```bash
 cd ~/SteamDeck-RefreshRateUnlocker && git pull
 ```
-Then run the script again and select **INSTALL**.
+Then select **INSTALL** again.
 
 ## How to Uninstall
-Run the script again in Desktop Mode and select **UNINSTALL**:
+Double-click the **Refresh Rate Unlocker (70Hz)** shortcut in Desktop Mode (or run the script) and select **UNINSTALL**:
 ```bash
 ~/SteamDeck-RefreshRateUnlocker/install-RefreshRateUnlocker.sh
 ```
@@ -68,9 +84,10 @@ Panels with their own gamescope profile (for example DeckHD) are not matched by 
 2. Desktop Mode detection works under Wayland (the default desktop session since SteamOS 3.8).
 3. Returns to Game Mode with `steamos-session-select gamescope` (falls back to `qdbus6` / `qdbus`).
 4. The refresh rate list is replaced robustly and verified - the script never reports success if the patch did not apply.
-5. No sudo password needed on SteamOS 3.7+.
+5. No sudo password needed on SteamOS 3.7+; on 3.5 / 3.6.20 a temporary password is set and removed automatically if you have none (like the Decky installer).
 6. Steam Deck OLED is detected and rejected with a clear message.
-7. Fixed the SteamOS 3.5 method truncating `/bin/gamescope-session`, and bundled files are found even when the script is started from another folder.
+7. One-click `.desktop` launcher that downloads / updates the project and starts the installer.
+8. Fixed the SteamOS 3.5 method truncating `/bin/gamescope-session`, and bundled files are found even when the script is started from another folder.
 
 ## Known Issues
 1. When taking a screenshot in-game, the screen will momentarily go blank as it toggles to 60Hz, and then goes back to the custom refresh rate once the screenshot is done.
