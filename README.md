@@ -24,6 +24,8 @@ For SteamOS 3.7 and newer there is **no version number check**: the mod is insta
 
 ## Installation
 
+https://github.com/user-attachments/assets/0394b912-fb39-40e3-b34f-225cb15d8fa8
+
 ### Option 1 - one click, no terminal (recommended)
 1. Switch to **Desktop Mode**.
 2. Download **[RefreshRateUnlocker.desktop](https://github.com/ahtynarg/SteamDeck-RefreshRateUnlocker/releases/latest/download/RefreshRateUnlocker.desktop)** (from the [latest release](https://github.com/ahtynarg/SteamDeck-RefreshRateUnlocker/releases/latest)) and move it from *Downloads* to the **Desktop**.
