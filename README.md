@@ -21,6 +21,16 @@ Discord user dan2wik for the idea on overclocking the display panel to 70Hz!
 <a href="https://www.paypal.com/donate/?business=VSMP49KYGADT4&no_recurring=0&item_name=Your+donation+inspires+me+to+continue+research+on+the+Steam+Deck%21%0AClover+script%2C+70Hz+mod%2C+SteamOS+microSD%2C+Secure+Boot%2C+etc.%0A%0A&currency_code=CAD"> <img src="https://github.com/ryanrudolfoba/SteamDeck-Clover-dualboot/blob/main/QRCode.png"/> </a>
 </p>
 
+## About this fork
+This fork updates the script for current SteamOS releases (tested logic against SteamOS 3.9.5 / gamescope 3.17):
+1. Removed the hard `3.8` upper version limit - any SteamOS 3.7 or newer uses the gamescope LUA method.
+2. Version comparison now uses `sort -V`, so future versions like `3.10` are detected correctly.
+3. Desktop Mode detection works under Wayland (the default desktop session since SteamOS 3.8).
+4. Returns to Game Mode with `steamos-session-select gamescope` (falls back to `qdbus6` / `qdbus`).
+5. The refresh rate list in the LUA profile is replaced robustly and verified - the script no longer reports success if the patch did not apply.
+6. The sudo password is no longer required for SteamOS 3.7+ since the mod only writes to `~/.config/gamescope/scripts`.
+7. Steam Deck OLED is detected and rejected with a clear message.
+
 ## Disclaimer
 1. Do this at your own risk!
 2. This is for educational and research purposes only!
@@ -38,6 +48,9 @@ Discord user dan2wik for the idea on overclocking the display panel to 70Hz!
 
 ## How to Uninstall
 Delete the file `~/.config/gamescope/scripts/valve.steamdeck.lcd.70Hz.lua`
+
+## What's New (fork, November 2026)
+1. SteamOS 3.9.x and newer support. See *About this fork* above.
 
 ## What's New (as of September 16 2025)
 1. Script has been rewritten to work with SteamOS 3.7.x and above only.
