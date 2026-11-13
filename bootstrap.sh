@@ -11,7 +11,7 @@ normalize_url() {
 
 if [ -d "$INSTALL_DIR/.git" ] && [ "$(normalize_url "$(git -C "$INSTALL_DIR" remote get-url origin 2> /dev/null)")" == "$(normalize_url "$REPO_URL")" ]
 then
-	echo Updating $INSTALL_DIR
+	echo Updating "$INSTALL_DIR"
 	if ! git -C "$INSTALL_DIR" pull --ff-only
 	then
 		echo Could not update - continuing with the version already downloaded.
@@ -21,11 +21,11 @@ else
 	if [ -e "$INSTALL_DIR" ]
 	then
 		BACKUP="$INSTALL_DIR.backup-$(date +%Y%m%d-%H%M%S)"
-		echo Moving the existing $INSTALL_DIR to $BACKUP
+		echo Moving the existing "$INSTALL_DIR" to "$BACKUP"
 		mv "$INSTALL_DIR" "$BACKUP" || exit 1
 	fi
 
-	echo Downloading $REPO_URL
+	echo Downloading "$REPO_URL"
 	if ! git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
 	then
 		echo Download failed. Check the internet connection and try again.

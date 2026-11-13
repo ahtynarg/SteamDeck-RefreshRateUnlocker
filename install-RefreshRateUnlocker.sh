@@ -97,18 +97,18 @@ then
 	then
 		echo Steam Deck OLED detected. This mod is for the Steam Deck LCD only.
 	else
-		echo This is not a Steam Deck LCD \(board: ${MODEL:-unknown}\). Goodbye!
+		echo This is not a Steam Deck LCD \(board: "${MODEL:-unknown}"\). Goodbye!
 	fi
 	exit 1
 fi
 
 if [ "$METHOD" == "UNSUPPORTED" ]
 then
-	echo SteamOS $STEAMOS_VERSION_FULL detected. This is unsupported version.
+	echo SteamOS "$STEAMOS_VERSION_FULL" detected. This is unsupported version.
 	echo The gamescope LCD profile was not found: $LCD_TEMPLATE
 	exit 1
 fi
-echo Test 1. Steam Deck LCD on SteamOS $STEAMOS_VERSION_FULL detected. Proceed to the next step.
+echo Test 1. Steam Deck LCD on SteamOS "$STEAMOS_VERSION_FULL" detected. Proceed to the next step.
 
 # sudo password handling - same approach as the Decky Loader installer.
 # Only the older methods (SteamOS 3.5 / 3.6.20) modify system files and need sudo.
@@ -198,7 +198,7 @@ elif [ "$Choice" == "INSTALL" ]
 then
 	if [ "$METHOD" == "LUA" ]
 	then
-		echo Installing the ${MAX_HZ}Hz mod for SteamOS $STEAMOS_VERSION_FULL.
+		echo Installing the ${MAX_HZ}Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
 
 		if [ ! -e "$LCD_TEMPLATE" ]
 		then
@@ -237,7 +237,7 @@ then
 		if [ $? -eq 0 ] && grep -q "$MAX_HZ" "$TMP_FILE" && grep -q "steamdeck_lcd" "$TMP_FILE"
 		then
 			mv "$TMP_FILE" "$SCRIPT_LOCATION/$SCRIPT_NAME"
-			echo ${MAX_HZ}Hz LCD mod successfully installed to $SCRIPT_LOCATION/$SCRIPT_NAME
+			echo ${MAX_HZ}Hz LCD mod successfully installed to "$SCRIPT_LOCATION"/$SCRIPT_NAME
 			return_to_game_mode
 		else
 			rm -f "$TMP_FILE"
@@ -254,7 +254,7 @@ then
 		# sanity check - perform md5sum hash check
 		if [ "$ACTUAL_GS_ORIG_MD5SUM" == "$GS_ORIG_MD5SUM" ] && [ "$ACTUAL_GS_PATCHED_MD5SUM" == "$GS_PATCHED_MD5SUM" ]
 		then
-			echo Installing the 70Hz mod for SteamOS $STEAMOS_VERSION_FULL.
+			echo Installing the 70Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
 			echo Downloaded files contain a valid md5sum hash.
 			echo -e "$current_password\n" | sudo -S steamos-readonly disable &> /dev/null
 			echo -e "$current_password\n" | sudo -S cp "$GS_PATCHED" /usr/bin/gamescope
@@ -275,7 +275,7 @@ then
 
 	elif [ "$METHOD" == "GAMESCOPE_SESSION" ]
 	then
-		echo Installing the 70Hz mod for SteamOS $STEAMOS_VERSION_FULL.
+		echo Installing the 70Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
 		echo -e "$current_password\n" | sudo -S steamos-readonly disable &> /dev/null
 		echo -e "$current_password\n" | sudo -S sed -i 's/STEAM_DISPLAY_REFRESH_LIMITS=40,60/STEAM_DISPLAY_REFRESH_LIMITS=40,70/g' /bin/gamescope-session
 		echo -e "$current_password\n" | sudo -S steamos-readonly enable &> /dev/null
@@ -293,14 +293,14 @@ elif [ "$Choice" == "UNINSTALL" ]
 then
 	if [ "$METHOD" == "LUA" ]
 	then
-		echo Removing the ${MAX_HZ}Hz mod for SteamOS $STEAMOS_VERSION_FULL.
+		echo Removing the ${MAX_HZ}Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
 		rm -f "$SCRIPT_LOCATION/$SCRIPT_NAME"
 		echo ${MAX_HZ}Hz mod successfully removed.
 		return_to_game_mode
 
 	elif [ "$METHOD" == "GAMESCOPE_BINARY" ]
 	then
-		echo Removing the 70Hz mod for SteamOS $STEAMOS_VERSION_FULL.
+		echo Removing the 70Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
 		echo -e "$current_password\n" | sudo -S steamos-readonly disable &> /dev/null
 		echo -e "$current_password\n" | sudo -S cp "$GS_ORIG" /usr/bin/gamescope
 		if [ $? -eq 0 ] && [ "$(md5sum /usr/bin/gamescope | cut -d " " -f 1)" == "$GS_ORIG_MD5SUM" ]
@@ -316,7 +316,7 @@ then
 
 	elif [ "$METHOD" == "GAMESCOPE_SESSION" ]
 	then
-		echo Removing the 70Hz mod for SteamOS $STEAMOS_VERSION_FULL.
+		echo Removing the 70Hz mod for SteamOS "$STEAMOS_VERSION_FULL".
 		echo -e "$current_password\n" | sudo -S steamos-readonly disable &> /dev/null
 		echo -e "$current_password\n" | sudo -S sed -i 's/STEAM_DISPLAY_REFRESH_LIMITS=40,70/STEAM_DISPLAY_REFRESH_LIMITS=40,60/g' /bin/gamescope-session
 		echo -e "$current_password\n" | sudo -S steamos-readonly enable &> /dev/null
